@@ -375,8 +375,8 @@ void ModManager::LoadMods()
 	}
 
 	// get mod directories
-	std::filesystem::directory_iterator classicModsDir = fs::directory_iterator(GetModFolderPath());
-	std::filesystem::directory_iterator remoteModsDir = fs::directory_iterator(GetRemoteModFolderPath());
+	std::filesystem::directory_iterator classicModsDir = fs::recursive_directory_iterator(GetModFolderPath());
+	std::filesystem::directory_iterator remoteModsDir = fs::recursive_directory_iterator(GetRemoteModFolderPath());
 
 	for (std::filesystem::directory_iterator modIterator : {classicModsDir, remoteModsDir})
 		for (fs::directory_entry dir : modIterator)
