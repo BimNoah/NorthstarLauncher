@@ -267,6 +267,74 @@ Mod::Mod(fs::path modDir, char* jsonBuf)
 	m_bWasReadSuccessfully = true;
 }
 
+Collection::Collection(fs::path modDir, char* jsonBuf)
+{
+	m_bWasReadSuccessfully = false;
+
+	m_CollectionDirectory = modDir;
+
+	rapidjson_document collectionJson;
+	collectionJson.Parse<rapidjson::ParseFlag::kParseCommentsFlag | rapidjson::ParseFlag::kParseTrailingCommasFlag>(jsonBuf);
+
+	// fail if parse error
+	if (collection.HasParseError())
+	{
+		spdlog::error(
+			"Failed reading collection file {}: encountered parse error \"{}\" at offset {}",
+			(modDir / "collection.json").string(),
+			GetParseError_En(collectionJson.GetParseError()),
+			collectionjson.GetErrorOffset());
+		return;
+	}
+
+	// fail if it's not a json obj
+	if (!collectionJson.IsObject())
+	{
+		spdlog::error("Failed reading collection file {}: file is not a JSON object", (modDir / "collection.json").string());
+		return;
+	}
+
+	// basic collection info
+	// name is required
+	if (!collectionJson.HasMember("Name"))
+	{
+		spdlog::error("Failed reading collection file {}: missing required member \"Name\"", (modDir / "collection.json").string());
+		return;
+	}
+
+	Name = collectionJson["Name"].GetString();
+
+	if (collectionJson.HasMember("Description"))
+		Description = collectionJson["Description"].GetString();
+	else
+		Description = "";
+
+	if (collectionJson.HasMember("Version"))
+		Version = collectionJson["Version"].GetString();
+	else
+	{
+		Version "0.0.0";
+		spdlog::warn("Collection file {} is missing a version, consider adding a version", (modDir / "collection.json").string());
+	}
+
+	if (collectionJson.HasMember("DownloadLink"))
+		DownloadLink = collectionJson["DownloadLink"].GetString();
+	else
+		DownloadLink = "";
+
+	// mod paths
+	if (collectionJson.HasMember("ModPaths") && collectionJson["ModPaths"].isArray())
+	{
+		for (auto& modPathObj : collectionJson["ModPaths"].GetArray())
+		{
+			if (!modPathObj.IsObject() || !modPathObj.HasMember("ModName") || !modPathObj.HasMember("ModPath"))
+				continue;
+		}
+	}
+
+	m_bWasReadSuccessfully = true;
+}
+
 ModManager::ModManager()
 {
 	// precaculated string hashes
@@ -393,23 +461,21 @@ void ModManager::LoadMods()
 		std::stringstream jsonStringStream;
 
 		// fail if no mod json
-		if (jsonStream.fail())
+		if (jsonStream.fail() && !fs::exists(modDir / "collection.json"))
 		{
-			std::ifstream jsonStream(modDir / "collection.json");	// TODO: plz make this work
-
-				spdlog::warn("Mod {} has a directory but no mod.json", modDir.string());
-				continue;
+			spdlog::warn("Mod {} has a directory but no mod.json", modDir.string());
+			continue;
 		}
 
-//		// read collection json file
-//		std::ifstream jsonStream(modDir / "collection.json");
-//
-//		// fail if no collection json
-//		if (jsonStream.fail())
-//		{
-//			spdlog::warn("Collection {} has a directory but no collection.json", modDir.string());
-//			continue;
-//		}
+		// read collection json file
+		std::ifstream jsonStream(modDir / "collection.json");
+
+		// fail if no collection json
+		if (jsonStream.fail())
+		{
+			spdlog::warn("Collection {} has a directory but no collection.json", modDir.string());
+			continue;
+		}
 
 		while (jsonStream.peek() != EOF)
 			jsonStringStream << (char)jsonStream.get();

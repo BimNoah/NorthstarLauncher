@@ -122,6 +122,28 @@ class Mod
 	Mod(fs::path modPath, char* jsonBuf);
 };
 
+class Collection
+{
+  public:
+	// runtime stuff
+	bool m_bEnabled = true;
+	bool m_bWasReadSuccessfully = false;
+	fs::path m_CollectionDirectory;
+
+	// collection.json stuff:
+
+	std::string Name;
+	std::string Description;
+	std::string Version;
+	std::string DownloadLink;
+
+	// custom mod paths in the collection
+	std::vector<std::string> ModPaths;
+
+  public:
+	Collection(fs::path collectionPath, char* json Buf);
+};
+
 struct ModOverrideFile
 {
   public:
