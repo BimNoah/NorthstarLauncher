@@ -350,6 +350,7 @@ void ModManager::LoadMods()
 		UnloadMods();
 
 	std::vector<fs::path> modDirs;
+	std::vector<fs::path> collectionDirs;
 
 	// ensure dirs exist
 	fs::remove_all(GetCompiledAssetsPath());
@@ -374,7 +375,7 @@ void ModManager::LoadMods()
 		m_bHasEnabledModsCfg = m_EnabledModsCfg.IsObject();
 	}
 
-	// get mod directories
+	// get mod and collection directories
 	std::filesystem::directory_iterator classicModsDir = fs::directory_iterator(GetModFolderPath());
 	std::filesystem::directory_iterator remoteModsDir = fs::directory_iterator(GetRemoteModFolderPath());
 
@@ -382,8 +383,10 @@ void ModManager::LoadMods()
 		for (fs::directory_entry dir : modIterator)
 			if (fs::exists(dir.path() / "mod.json"))
 				modDirs.push_back(dir.path());
+			else if (fs::exists(dir.path() / "collection.json"))
+				collectionDirs.push_back(dir.path());
 
-	for (fs::path modDir : modDirs)
+	for (fs::path modDir : {modDirs, collectionDirs})
 	{
 		// read mod json file
 		std::ifstream jsonStream(modDir / "mod.json");
@@ -392,9 +395,21 @@ void ModManager::LoadMods()
 		// fail if no mod json
 		if (jsonStream.fail())
 		{
-			spdlog::warn("Mod {} has a directory but no mod.json", modDir.string());
-			continue;
+			std::ifstream jsonStream(modDir / "collection.json");	// TODO: plz make this work
+
+				spdlog::warn("Mod {} has a directory but no mod.json", modDir.string());
+				continue;
 		}
+
+//		// read collection json file
+//		std::ifstream jsonStream(modDir / "collection.json");
+//
+//		// fail if no collection json
+//		if (jsonStream.fail())
+//		{
+//			spdlog::warn("Collection {} has a directory but no collection.json", modDir.string());
+//			continue;
+//		}
 
 		while (jsonStream.peek() != EOF)
 			jsonStringStream << (char)jsonStream.get();
